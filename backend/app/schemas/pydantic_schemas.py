@@ -1,6 +1,6 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 # Base & Shared
 class ApiResponse(BaseModel):
@@ -30,8 +30,7 @@ class ThreadsPostSchema(BaseModel):
     repost_count: Optional[int] = None
     published_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ThreadsCommentSchema(BaseModel):
     id: str
@@ -46,8 +45,7 @@ class ThreadsCommentSchema(BaseModel):
     nesting_depth: int = 0
     published_at: Optional[datetime] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class CommentSelectionItem(BaseModel):
     comment_id: str
@@ -64,8 +62,7 @@ class CommentSelectionSchema(CommentSelectionItem):
     audio_path: Optional[str] = None
     audio_duration_ms: Optional[int] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class ProjectDetail(BaseModel):
     id: str
@@ -78,8 +75,7 @@ class ProjectDetail(BaseModel):
     post: Optional[ThreadsPostSchema] = None
     selections: List[CommentSelectionSchema] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Crawl Schemas
 class CrawlRequest(BaseModel):
