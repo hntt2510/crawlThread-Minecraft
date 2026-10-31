@@ -15,6 +15,7 @@ from backend.app.api.render import router as render_router
 from backend.app.api.capcut import router as capcut_router
 from backend.app.api.publishing import router as publishing_router
 from backend.app.api.settings import router as settings_router
+from backend.app.api.discovery import router as discovery_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,6 +51,7 @@ app.include_router(render_router, prefix="/api")
 app.include_router(capcut_router, prefix="/api")
 app.include_router(publishing_router, prefix="/api")
 app.include_router(settings_router, prefix="/api")
+app.include_router(discovery_router, prefix="/api")
 
 @app.get("/api/health")
 def health_check():

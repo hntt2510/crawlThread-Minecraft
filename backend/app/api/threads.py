@@ -5,7 +5,7 @@ from backend.app.core.database import get_db, SessionLocal
 from backend.app.core.job_manager import job_manager, Job
 from backend.app.models.db_models import Project, ThreadsPost, ThreadsComment, CommentSelection
 from backend.app.schemas.pydantic_schemas import CrawlRequest, ApiResponse
-from backend.app.services.crawler.relay_crawler import ThreadsRelayCrawler
+from backend.app.services.crawler.service import crawler_service
 
 router = APIRouter(prefix="/threads", tags=["threads"])
 
@@ -13,8 +13,7 @@ def _execute_crawl(job: Job, project_id: str, threads_url: str, max_comments: in
     db: Session = SessionLocal()
     try:
         job.update(15, "Đang kết nối tới Threads và giải mã Relay cache...")
-        crawler = ThreadsRelayCrawler()
-        crawled_post = crawler.crawl_post_and_comments(threads_url, max_comments=max_comments)
+        crawled_post = crawler_service.crawl(threads_url, max_comments=max_comments)
 
         job.update(60, f"Đã trích xuất bài viết và {len(crawled_post.comments)} bình luận. Đang lưu vào cơ sở dữ liệu...")
 
@@ -87,6 +86,11 @@ def _execute_crawl(job: Job, project_id: str, threads_url: str, max_comments: in
             db.add(selection)
 
         project.status = "crawled"
+        report_dict = crawled_post.quality_report.model_dump() if crawled_post.quality_report else None
+        curr_settings = dict(project.settings or {})
+        curr_settings["quality_report"] = report_dict
+        project.settings = curr_settings
+
         db.commit()
 
         job.update(100, f"Thu thập thành công {len(saved_comments)} bình luận!")
@@ -94,7 +98,8 @@ def _execute_crawl(job: Job, project_id: str, threads_url: str, max_comments: in
             "post_id": post_record.id,
             "author": post_record.author_username,
             "total_comments": len(saved_comments),
-            "selected_count": len(top_selections)
+            "selected_count": len(top_selections),
+            "quality_report": report_dict
         }
 
     finally:

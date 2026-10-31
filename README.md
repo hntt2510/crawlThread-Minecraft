@@ -7,7 +7,8 @@
 
 ## 🌟 Tính Năng Nổi Bật (Key Capabilities)
 
-- ⚡ **Thu Thập Threads Siêu Tốc (Relay Stream Cache)**: Trích xuất bài viết gốc và bình luận kèm lượt thích, phản hồi trong < 1 giây trực tiếp từ URL Threads mà không cần tài khoản hay trình duyệt giả lập nặng nề.
+- ⚡ **Khám Phá Xu Hướng Threads Việt Nam (Trending Discovery & Studio Hot Score)**: Tự động quét và phát hiện các bài viết Threads có lượng tương tác và thảo luận sôi nổi nhất tại Việt Nam theo 11 danh mục (Giải trí, Đời sống, Công nghệ, Xã hội, Kinh doanh...). Thuật toán `Studio Hot Score` ưu tiên độ sôi nổi của bình luận và độ tươi mới, hỗ trợ chọn bài tạo video 1-click.
+- 🎯 **Trình Thu Thập Bình Luận Chuẩn Xác (Reliable Comment Crawler)**: Đã tái cấu trúc toàn diện logic bóc tách. Xác thực chính xác ID bài viết gốc, không bị lẫn bài viết liên quan hay repost, ánh xạ chuẩn cây phân cấp cha - con (`parent_comment_id`, `nesting_depth`), bảo toàn giá trị `NULL` cho metric chưa có và xuất báo cáo chất lượng dữ liệu `CrawlQualityReport`.
 - 💬 **Quản Lý Bình Luận Chuyên Nghiệp (Dual-Text Editor)**: Tách biệt **Nội dung hiển thị (Display Text)** trên thẻ video và **Lời đọc thuyết minh (TTS Text)** cho voiceover. Hỗ trợ chọn nhanh Top 3, Top 5, Top 10 theo lượt thích, lọc bình luận con và đổi thứ tự phân cảnh.
 - 🎙️ **Phòng Thu Giọng Đọc Tiếng Việt (Vietnamese Voice Studio)**: Tích hợp sẵn Microsoft Edge TTS Neural (`Hoài My` nữ truyền cảm, `Nam Minh` nam trầm ấm) hoàn toàn miễn phí, không tốn credit, kèm bộ điều khiển tốc độ (0.8x – 1.4x), bộ nhớ đệm SHA256 và adapter mở rộng cho FPT.AI / Google Cloud.
 - 🎮 **Dựng Video 9:16 Tự Động (FFmpeg Engine)**: Tự động ghép thẻ bình luận bo tròn góc, drop-shadow trên nền Minecraft gameplay, trộn âm thanh giọng đọc và tự động giảm âm lượng nhạc nền (Audio Ducking -14dB) khi có tiếng nói.
@@ -85,23 +86,29 @@ Chạy bộ kiểm thử tự động toàn diện:
 $env:PYTHONPATH = "."
 .\.venv\Scripts\python.exe -m pytest -v
 ```
-Kết quả kiểm thử:
+Kết quả kiểm thử (20/20 tests passing):
 ```
-tests/test_api_endpoints.py::test_health_check_endpoint PASSED           [  7%]
-tests/test_api_endpoints.py::test_project_crud PASSED                    [ 14%]
-tests/test_api_endpoints.py::test_tts_voices_endpoint PASSED             [ 21%]
-tests/test_capcut_exporter.py::test_capcut_exporter_structure PASSED     [ 28%]
-tests/test_card_generator.py::test_card_generator_creates_valid_png PASSED [ 35%]
-tests/test_crawler_quick.py::test_crawler_live PASSED                    [ 42%]
-tests/test_e2e_workflow.py::test_full_studio_workflow_integration PASSED [ 50%]
-tests/test_publishing_adapters.py::test_publishing_service_validation PASSED [ 57%]
-tests/test_threads_crawler.py::test_parse_threads_url_valid PASSED       [ 64%]
-tests/test_threads_crawler.py::test_parse_threads_url_invalid PASSED     [ 71%]
-tests/test_threads_crawler.py::test_crawler_html_parsing_synthetic PASSED [ 78%]
-tests/test_tts_service.py::test_tts_voices_list PASSED                   [ 85%]
-tests/test_tts_service.py::test_tts_synthesis_and_caching PASSED         [ 92%]
+tests/test_api_endpoints.py::test_health_check_endpoint PASSED           [  5%]
+tests/test_api_endpoints.py::test_project_crud PASSED                    [ 10%]
+tests/test_api_endpoints.py::test_tts_voices_endpoint PASSED             [ 15%]
+tests/test_capcut_exporter.py::test_capcut_exporter_structure PASSED     [ 20%]
+tests/test_card_generator.py::test_card_generator_creates_valid_png PASSED [ 25%]
+tests/test_comment_parser.py::test_comment_parser_strict_validation PASSED [ 30%]
+tests/test_crawler_quick.py::test_crawler_live PASSED                    [ 35%]
+tests/test_discovery.py::test_hot_score_prioritizes_replies_and_recency PASSED [ 40%]
+tests/test_discovery.py::test_hot_score_handles_none_metrics PASSED      [ 45%]
+tests/test_discovery.py::test_trend_topic_provider_distinct_sources PASSED [ 50%]
+tests/test_discovery.py::test_discovery_service_filters_and_deduplication PASSED [ 55%]
+tests/test_discovery.py::test_discovery_api_endpoints PASSED             [ 60%]
+tests/test_e2e_workflow.py::test_full_studio_workflow_integration PASSED [ 65%]
+tests/test_publishing_adapters.py::test_publishing_service_validation PASSED [ 70%]
+tests/test_threads_crawler.py::test_parse_threads_url_valid PASSED       [ 75%]
+tests/test_threads_crawler.py::test_parse_threads_url_invalid PASSED     [ 80%]
+tests/test_threads_crawler.py::test_crawler_html_parsing_synthetic PASSED [ 85%]
+tests/test_tts_service.py::test_tts_voices_list PASSED                   [ 90%]
+tests/test_tts_service.py::test_tts_synthesis_and_caching PASSED         [ 95%]
 tests/test_video_composer.py::test_video_composer_full_render PASSED     [100%]
-======================= 14 passed in 5.78s =======================
+======================= 20 passed in 6.62s =======================
 ```
 
 ---

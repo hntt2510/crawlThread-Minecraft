@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     FPTAI_API_KEY: str = ""
     GOOGLE_APPLICATION_CREDENTIALS: str = ""
     
+    # Threads & Discovery
+    THREADS_APP_ID: str = ""
+    THREADS_APP_SECRET: str = ""
+    THREADS_ACCESS_TOKEN: str = ""
+    THREADS_API_BASE_URL: str = "https://graph.threads.net/v1.0"
+    VIETNAM_TRENDS_FEED_URL: str = "https://trends.google.com/trending/rss?geo=VN"
+
     # Publishing
     YOUTUBE_CLIENT_ID: str = ""
     YOUTUBE_CLIENT_SECRET: str = ""

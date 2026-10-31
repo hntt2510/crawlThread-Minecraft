@@ -1,8 +1,57 @@
-import { Project, ThreadsComment, CommentSelection, VoiceInfo, MediaAsset, JobStatus } from '../types';
+import {
+  Project,
+  ThreadsComment,
+  CommentSelection,
+  VoiceInfo,
+  MediaAsset,
+  JobStatus,
+  TrendingTopic,
+  DiscoveryResult,
+  DiscoverySearchRequest
+} from '../types';
 
 const API_BASE = '/api';
 
 export const api = {
+  // Discovery
+  async searchDiscovery(params: DiscoverySearchRequest): Promise<DiscoveryResult> {
+    const res = await fetch(`${API_BASE}/discovery/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || 'Lỗi khi tìm kiếm bài viết Threads');
+    }
+    const data = await res.json();
+    return data.data;
+  },
+
+  async getDiscoveryTopics(category?: string, refresh: boolean = false): Promise<TrendingTopic[]> {
+    const searchParams = new URLSearchParams();
+    if (category) searchParams.set('category', category);
+    if (refresh) searchParams.set('force_refresh', 'true');
+    const res = await fetch(`${API_BASE}/discovery/topics?${searchParams.toString()}`);
+    if (!res.ok) throw new Error('Không thể tải chủ đề xu hướng');
+    const data = await res.json();
+    return data.data;
+  },
+
+  async getDiscoveryCategories(): Promise<Record<string, { label: string; icon: string; desc: string }>> {
+    const res = await fetch(`${API_BASE}/discovery/categories`);
+    if (!res.ok) throw new Error('Không thể tải danh mục chủ đề');
+    const data = await res.json();
+    return data.data;
+  },
+
+  async getDiscoveryStatus(): Promise<any> {
+    const res = await fetch(`${API_BASE}/discovery/status`);
+    if (!res.ok) throw new Error('Không thể tải trạng thái Meta Threads API');
+    const data = await res.json();
+    return data.data;
+  },
+
   // Projects
   async listProjects(): Promise<Project[]> {
     const res = await fetch(`${API_BASE}/projects`);
