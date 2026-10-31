@@ -1,4 +1,4 @@
-# Threads Comment Video Studio 🎬
+# crawlThread-Minecraft - Threads Comment Video Studio 🎬
 
 > **Local-First Vertical Video Studio for Digital Creators**  
 > Chuyển đổi bất kỳ bài viết Threads nào thành video ngắn 9:16 trên nền Minecraft gameplay với giọng đọc thuyết minh tiếng Việt chuẩn, xuất file dự án CapCut Desktop đa track (Multi-track) có thể chỉnh sửa và xuất bản trực tiếp lên YouTube Shorts, Facebook Page Reels và TikTok.

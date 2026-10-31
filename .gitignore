@@ -6,12 +6,11 @@ __pycache__/
 env/
 venv/
 *.egg-info/
-dist/
-build/
+/dist/
+/build/
 
 # Node & Frontend
 node_modules/
-frontend/dist/
 frontend/node_modules/
 *.tsbuildinfo
 
