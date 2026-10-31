@@ -1,0 +1,33 @@
+# Python & Venv
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Node & Frontend
+node_modules/
+frontend/dist/
+frontend/node_modules/
+*.tsbuildinfo
+
+# Storage & Cache
+.env
+data/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Pytest & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# OS Specific
+.DS_Store
+Thumbs.db
