@@ -15,6 +15,7 @@ class DiscoverySearchRequest(BaseModel):
     search_type: str = Field(default="BOTH", description="TOP, RECENT, or BOTH")
     media_type: str = Field(default="ALL", description="ALL, TEXT_POST, IMAGE, VIDEO, CAROUSEL")
     time_window: str = Field(default="7d", description="24h, 3d, 7d, all")
+    sort_by: str = Field(default="hot", description="hot, latest, or comments")
     limit: int = Field(default=30, ge=1, le=100)
 
 @router.post("/search")
@@ -27,6 +28,7 @@ def search_discovery(req: DiscoverySearchRequest):
             search_type=req.search_type,
             media_type=req.media_type,
             time_window=req.time_window,
+            sort_by=req.sort_by,
             limit=req.limit
         )
         return ApiResponse(success=True, data=res.model_dump())

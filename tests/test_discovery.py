@@ -1,11 +1,14 @@
 import pytest
-from fastapi.testclient import TestClient
-from backend.main import app
 from backend.app.services.discovery.hot_score import hot_score_calculator
 from backend.app.services.discovery.trend_topic_provider import trend_topic_provider
 from backend.app.services.discovery.discovery_service import discovery_service, DiscoveredPost
-
-client = TestClient(app)
+from backend.app.api.discovery import (
+    get_categories,
+    get_topics,
+    get_discovery_status,
+    search_discovery,
+    DiscoverySearchRequest
+)
 
 def test_hot_score_prioritizes_replies_and_recency():
     # Post A: 500 likes, 10 replies, 72 hours old
@@ -65,34 +68,49 @@ def test_discovery_service_filters_and_deduplication():
     res_text = discovery_service.search_trending(media_type="TEXT_POST", limit=10)
     assert all(p.media_type == "TEXT_POST" for p in res_text.posts)
 
+def test_discovery_sorting_modes():
+    # 1. Sort by latest
+    res_latest = discovery_service.search_trending(category="lifestyle", sort_by="latest", limit=10)
+    assert len(res_latest.posts) > 1
+    # Check that published_at is ordered descending
+    dates = [p.published_at for p in res_latest.posts if p.published_at]
+    assert dates == sorted(dates, reverse=True)
+
+    # 2. Sort by comments
+    res_comments = discovery_service.search_trending(category="all", sort_by="comments", limit=10)
+    assert len(res_comments.posts) > 1
+    replies = [p.reply_count or 0 for p in res_comments.posts]
+    assert replies == sorted(replies, reverse=True)
+
 def test_discovery_api_endpoints():
     # 1. Categories
-    r_cat = client.get("/api/discovery/categories")
-    assert r_cat.status_code == 200
-    assert r_cat.json()["success"] is True
-    assert "entertainment" in r_cat.json()["data"]
+    r_cat = get_categories()
+    assert r_cat.success is True
+    assert "entertainment" in r_cat.data
 
     # 2. Topics
-    r_top = client.get("/api/discovery/topics")
-    assert r_top.status_code == 200
-    assert r_top.json()["success"] is True
-    assert len(r_top.json()["data"]) > 0
+    r_top = get_topics()
+    assert r_top.success is True
+    assert len(r_top.data) > 0
 
     # 3. Status
-    r_stat = client.get("/api/discovery/status")
-    assert r_stat.status_code == 200
-    assert "configured" in r_stat.json()["data"]
+    r_stat = get_discovery_status()
+    assert r_stat.success is True
+    assert "configured" in r_stat.data
 
-    # 4. Search
-    r_search = client.post("/api/discovery/search", json={
-        "category": "lifestyle",
-        "search_type": "BOTH",
-        "media_type": "ALL",
-        "time_window": "7d",
-        "limit": 5
-    })
-    assert r_search.status_code == 200
-    data = r_search.json()["data"]
+    # 4. Search with sort_by latest
+    req = DiscoverySearchRequest(
+        category="lifestyle",
+        search_type="BOTH",
+        media_type="ALL",
+        time_window="7d",
+        sort_by="latest",
+        limit=5
+    )
+    r_search = search_discovery(req)
+    assert r_search.success is True
+    data = r_search.data
     assert "posts" in data
     assert len(data["posts"]) > 0
     assert data["posts"][0]["hot_score"] >= 5.0
+    assert "age_label" in data["posts"][0]

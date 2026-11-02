@@ -274,6 +274,81 @@ export const api = {
     return res.json();
   },
 
+  // AI Curation
+  async curateComments(projectId: string, targetCount: number = 5, mode: string = 'balanced', autoApply: boolean = false): Promise<any> {
+    const res = await fetch(`${API_BASE}/comments/project/${projectId}/curate?target_count=${targetCount}&mode=${mode}&auto_apply=${autoApply}`, {
+      method: 'POST'
+    });
+    if (!res.ok) throw new Error('Lỗi khi phân tích tuyển chọn bình luận');
+    const data = await res.json();
+    return data.data;
+  },
+
+  // AI Hooks
+  async getProjectHook(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/hooks/project/${projectId}`);
+    if (!res.ok) throw new Error('Không thể tải thông tin Hook');
+    const data = await res.json();
+    return data.hook;
+  },
+
+  async generateHooks(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/hooks/project/${projectId}/generate`, { method: 'POST' });
+    if (!res.ok) throw new Error('Lỗi khi tạo đề xuất Hook');
+    const data = await res.json();
+    return data.data;
+  },
+
+  async selectHook(projectId: string, hookData: any, generateAudio: boolean = true): Promise<any> {
+    const res = await fetch(`${API_BASE}/hooks/project/${projectId}/select?generate_audio=${generateAudio}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(hookData),
+    });
+    if (!res.ok) throw new Error('Lỗi khi lưu lựa chọn Hook');
+    const data = await res.json();
+    return data.hook;
+  },
+
+  // Timeline Planner & SFX
+  async getTimelinePlan(projectId: string, pace: string = 'balanced'): Promise<any> {
+    const res = await fetch(`${API_BASE}/timeline/project/${projectId}/plan?pace=${pace}`);
+    if (!res.ok) throw new Error('Không thể lập kế hoạch Timeline');
+    const data = await res.json();
+    return data.data;
+  },
+
+  async reorderTimelineScenes(projectId: string, orderedCommentIds: string[]): Promise<any> {
+    const res = await fetch(`${API_BASE}/timeline/project/${projectId}/reorder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ordered_comment_ids: orderedCommentIds }),
+    });
+    if (!res.ok) throw new Error('Lỗi khi sắp xếp lại phân cảnh');
+    return res.json();
+  },
+
+  async getSFXLibrary(): Promise<any[]> {
+    const res = await fetch(`${API_BASE}/timeline/sfx/library`);
+    if (!res.ok) throw new Error('Không thể tải thư viện SFX');
+    const data = await res.json();
+    return data.items || [];
+  },
+
+  // Quality Checker
+  async getQualityReport(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/quality/project/${projectId}/check`);
+    if (!res.ok) throw new Error('Lỗi khi kiểm định chất lượng dự án');
+    const data = await res.json();
+    return data.report;
+  },
+
+  async autoFixQuality(projectId: string): Promise<any> {
+    const res = await fetch(`${API_BASE}/quality/project/${projectId}/auto-fix`, { method: 'POST' });
+    if (!res.ok) throw new Error('Lỗi khi tự động sửa lỗi chất lượng');
+    return res.json();
+  },
+
   async healthCheck(): Promise<any> {
     const res = await fetch(`${API_BASE}/health`);
     if (!res.ok) throw new Error('Server không phản hồi');

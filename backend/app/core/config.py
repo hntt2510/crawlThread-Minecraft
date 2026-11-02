@@ -54,5 +54,8 @@ else:
     local_app_data = os.environ.get("LOCALAPPDATA", "")
     if local_app_data:
         default_cc = Path(local_app_data) / "CapCut" / "User Data" / "Projects" / "com.lveditor.draft"
-        if default_cc.exists():
-            settings.CAPCUT_DRAFT_FOLDER = str(default_cc)
+        try:
+            if default_cc.exists():
+                settings.CAPCUT_DRAFT_FOLDER = str(default_cc)
+        except (PermissionError, OSError):
+            pass

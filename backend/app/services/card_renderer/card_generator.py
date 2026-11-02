@@ -146,19 +146,34 @@ class CardGenerator:
         handle_str = f"@{author_username}" if author_username else "@threads"
         draw.text((text_x, curr_y + 42), handle_str, fill=subtext_color, font=font_handle)
 
-        # Badge: "BÀI VIẾT" or "BÌNH LUẬN"
-        badge_text = "BÀI GỐC" if card_type == "post" else "BÌNH LUẬN"
+        # Badge: "BÀI GỐC", "BÌNH LUẬN", or "MỞ ĐẦU"
+        if card_type == "hook":
+            badge_text = "⚡ MỞ ĐẦU"
+            badge_bg = (133, 77, 14, 255)
+            badge_outline = (234, 179, 8, 255)
+            badge_text_color = (254, 240, 138, 255)
+        elif card_type == "post":
+            badge_text = "BÀI GỐC"
+            badge_bg = (39, 39, 42, 255)
+            badge_outline = (82, 82, 91, 255)
+            badge_text_color = (212, 212, 216, 255)
+        else:
+            badge_text = "BÌNH LUẬN"
+            badge_bg = (39, 39, 42, 255)
+            badge_outline = (82, 82, 91, 255)
+            badge_text_color = (212, 212, 216, 255)
+
         bbox_b = draw.textbbox((0, 0), badge_text, font=font_badge)
         bw = bbox_b[2] - bbox_b[0]
         badge_x = card_width - padding_x - bw - 24
         draw.rounded_rectangle(
             [(badge_x, curr_y + 10), (card_width - padding_x, curr_y + 46)],
             radius=12,
-            fill=(39, 39, 42, 255),
-            outline=(82, 82, 91, 255),
+            fill=badge_bg,
+            outline=badge_outline,
             width=1
         )
-        draw.text((badge_x + 12, curr_y + 17), badge_text, fill=(212, 212, 216, 255), font=font_badge)
+        draw.text((badge_x + 12, curr_y + 17), badge_text, fill=badge_text_color, font=font_badge)
 
         curr_y += header_height + 20
 

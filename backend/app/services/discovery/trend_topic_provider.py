@@ -17,13 +17,15 @@ class TrendingTopic(BaseModel):
     source_label: str   # "Threads Trending", "Google Trends VN", "Gợi ý hệ thống"
     traffic_hint: Optional[str] = None
     updated_at: str
+    updated_at_human: str = ""
 
     model_config = ConfigDict(from_attributes=True)
 
 class TrendTopicProvider:
-    """Discovers Vietnam trending topics from official API, external RSS feeds, or catalog seeds."""
+    """Discovers Vietnam trending topics from official API, external RSS feeds, or catalog seeds,
+    with real-time date/time stamps and smart categorization."""
 
-    def __init__(self, cache_ttl_sec: int = 900):  # 15 minutes TTL
+    def __init__(self, cache_ttl_sec: int = 600):  # 10 minutes TTL
         self.cache_ttl_sec = cache_ttl_sec
         self._cached_topics: List[TrendingTopic] = []
         self._last_fetch_time: Optional[datetime] = None
@@ -42,6 +44,7 @@ class TrendTopicProvider:
 
         all_topics: List[TrendingTopic] = []
         seen_names = set()
+        now_human = now.strftime("%H:%M %d/%m/%Y")
 
         # 1. Native Threads Trending (if configured and supported)
         threads_trends = self._fetch_threads_native_trends()
@@ -49,14 +52,16 @@ class TrendTopicProvider:
             norm = t.name.lower().strip()
             if norm not in seen_names:
                 seen_names.add(norm)
+                t.updated_at_human = now_human
                 all_topics.append(t)
 
-        # 2. External Vietnam Trend Feeds (Google Trends VN RSS)
+        # 2. External Real-Time Vietnam Trend Feeds (Google Trends VN RSS)
         feed_trends = self._fetch_vietnam_rss_trends()
         for t in feed_trends:
             norm = t.name.lower().strip()
             if norm not in seen_names:
                 seen_names.add(norm)
+                t.updated_at_human = now_human
                 all_topics.append(t)
 
         # 3. Built-in Catalog Seeds (Ensures rich variety across categories)
@@ -72,7 +77,8 @@ class TrendTopicProvider:
                     source="seed_catalog",
                     source_label="Gợi ý hệ thống",
                     traffic_hint=s.get("traffic_hint"),
-                    updated_at=now.isoformat()
+                    updated_at=now.isoformat(),
+                    updated_at_human=now_human
                 ))
 
         self._cached_topics = all_topics
@@ -91,7 +97,6 @@ class TrendTopicProvider:
         base_url = getattr(settings, "THREADS_API_BASE_URL", "https://graph.threads.net/v1.0").rstrip("/")
         try:
             with httpx.Client(timeout=8.0) as client:
-                # Meta documented endpoint for trends when permitted
                 resp = client.get(
                     f"{base_url}/trending_topics",
                     params={"access_token": access_token}
@@ -99,25 +104,29 @@ class TrendTopicProvider:
                 if resp.status_code == 200:
                     data = resp.json()
                     results = []
+                    now = datetime.now(timezone.utc)
+                    now_human = now.strftime("%H:%M %d/%m/%Y")
                     for idx, item in enumerate(data.get("data", [])):
                         topic_name = item.get("topic") or item.get("name")
                         if topic_name:
+                            cat = self._infer_category(topic_name)
                             results.append(TrendingTopic(
                                 id=f"threads_trend_{idx}",
                                 name=topic_name,
-                                category="entertainment",
+                                category=cat,
                                 source="threads_trending",
-                                source_label="Threads Trending (Chính thức)",
+                                source_label="Threads Trending (Thời gian thực)",
                                 traffic_hint="Xu hướng Threads",
-                                updated_at=datetime.now(timezone.utc).isoformat()
+                                updated_at=now.isoformat(),
+                                updated_at_human=now_human
                             ))
                     return results
         except Exception as e:
-            logger.debug(f"Official Threads trending endpoint not available or not permitted: {e}")
+            logger.debug(f"Official Threads trending endpoint not available: {e}")
         return []
 
     def _fetch_vietnam_rss_trends(self) -> List[TrendingTopic]:
-        """Fetches public Vietnam trending search feed (Google Trends RSS)."""
+        """Fetches public Vietnam trending search feed (Google Trends RSS) with real-time timestamps."""
         feed_url = getattr(settings, "VIETNAM_TRENDS_FEED_URL", "https://trends.google.com/trending/rss?geo=VN")
         if not feed_url:
             return []
@@ -132,20 +141,28 @@ class TrendTopicProvider:
                 items = root.findall(".//item")
                 results: List[TrendingTopic] = []
 
-                # XML namespace for Google Trends
                 ns = {"ht": "https://trends.google.com/trends/trendingsearches/daily"}
+                now = datetime.now(timezone.utc)
+                now_human = now.strftime("%H:%M %d/%m/%Y")
 
-                for idx, it in enumerate(items[:15]):
+                for idx, it in enumerate(items[:20]):
                     title_elem = it.find("title")
                     if title_elem is None or not title_elem.text:
                         continue
                     title = title_elem.text.strip()
 
-                    # Try to extract approx_traffic
                     traffic_elem = it.find("ht:approx_traffic", ns)
                     traffic = traffic_elem.text.strip() if (traffic_elem is not None and traffic_elem.text) else "Đang thịnh hành"
 
-                    # Infer category
+                    pub_elem = it.find("pubDate")
+                    item_updated = now.isoformat()
+                    if pub_elem is not None and pub_elem.text:
+                        try:
+                            parsed_pub = datetime.strptime(pub_elem.text.strip()[:25], "%a, %d %b %Y %H:%M:%S")
+                            item_updated = parsed_pub.replace(tzinfo=timezone.utc).isoformat()
+                        except Exception:
+                            pass
+
                     cat = self._infer_category(title)
 
                     results.append(TrendingTopic(
@@ -155,7 +172,8 @@ class TrendTopicProvider:
                         source="google_trends_vn",
                         source_label="Google Trends VN",
                         traffic_hint=traffic,
-                        updated_at=datetime.now(timezone.utc).isoformat()
+                        updated_at=item_updated,
+                        updated_at_human=now_human
                     ))
                 return results
         except Exception as e:
@@ -163,17 +181,35 @@ class TrendTopicProvider:
             return []
 
     def _infer_category(self, title: str) -> str:
-        t_low = title.lower()
-        if any(w in t_low for w in ["phim", "ca sĩ", "nhạc", "show", "diễn viên", "rap"]):
+        t_low = " " + title.lower() + " "
+        def has_any(keywords):
+            return any(k in t_low for k in keywords)
+
+        # 1. Entertainment
+        if has_any(["phim", "ca sĩ", "nhạc", "show", "diễn viên", "rap", "tập", "concert", "hoa hậu", "mv", "album", "idol", "showbiz", "anh trai"]):
             return "entertainment"
-        if any(w in t_low for w in ["ai", "iphone", "samsung", "công nghệ", "chip"]):
-            return "technology"
-        if any(w in t_low for w in ["bóng đá", "cup", "marathon", "thể thao", "trận"]):
+        # 2. Sports
+        if has_any(["đấu với", " vs ", "bóng đá", "cup", "marathon", "thể thao", "trận", "al-nassr", "arsenal", "chelsea", "liverpool", "pickleball", "cầu thủ", "vô địch"]):
             return "sports"
-        if any(w in t_low for w in ["giá vàng", "chứng khoán", "ngân hàng", "tỷ giá"]):
+        # 3. Technology
+        if has_any(["điện thoại", "máy tính", "máy ảnh", "iphone", "samsung", "công nghệ", "chip", "ai", "laptop", "nvidia", "intel", "lập trình", "phần mềm"]):
+            return "technology"
+        # 4. Business & Finance
+        if has_any(["cổ phiếu", "chứng khoán", "giá vàng", "ngân hàng", "tỷ giá", "doanh thu", "lợi nhuận", "kinh tế", "đầu tư", "tiết kiệm", "bất động sản"]):
             return "business"
-        if any(w in t_low for w in ["món", "quán", "ẩm thực", "ăn"]):
+        # 5. Food & Drinks
+        if has_any(["món ăn", "quán ăn", "ẩm thực", "ăn uống", "cà phê", "nhà hàng", "buffet", "trà sữa", "nấu ăn"]):
             return "food"
+        # 6. Travel
+        if has_any(["du lịch", "khách sạn", "homestay", "đà lạt", "phú quốc", "sapa", "vé máy bay", "check in", "phượt"]):
+            return "travel"
+        # 7. Education
+        if has_any(["sinh viên", "đại học", "thi cử", "học sinh", "điểm chuẩn", "học bổng", "tuyển sinh", "kỳ thi"]):
+            return "education"
+        # 8. Relationships
+        if has_any(["người yêu", "hẹn hò", "tình yêu", "crush", "chia tay", "cắm sừng", "bạn thân"]):
+            return "relationships"
+
         return "society"
 
 trend_topic_provider = TrendTopicProvider()

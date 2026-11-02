@@ -60,9 +60,11 @@ class CapCutExporter:
 
         # Add distinct timeline tracks
         script.add_track(cc.TrackType.video, "V1_Background", absolute_index=0)
+        script.add_track(cc.TrackType.video, "V0_Hook_Card", absolute_index=5)
         script.add_track(cc.TrackType.video, "V2_Post_Card", absolute_index=10)
         script.add_track(cc.TrackType.video, "V3_Comment_Cards", absolute_index=20)
-        script.add_track(cc.TrackType.audio, "A1_Voiceovers", absolute_index=5)
+        script.add_track(cc.TrackType.audio, "A1_Voiceovers", absolute_index=4)
+        script.add_track(cc.TrackType.audio, "A3_Sound_Effects", absolute_index=8)
         if background_music_path and background_music_path.exists():
             script.add_track(cc.TrackType.audio, "A2_Background_Music", absolute_index=2)
 
@@ -81,14 +83,19 @@ class CapCutExporter:
         timeline_curr_us = 0
         for i, scene in enumerate(scenes):
             scene_dur_us = int(scene.duration_sec * 1_000_000)
-            target_track = "V2_Post_Card" if i == 0 else "V3_Comment_Cards"
+            if getattr(scene, "is_hook", False):
+                target_track = "V0_Hook_Card"
+            elif i == 0 or (getattr(scenes[0], "is_hook", False) and i == 1):
+                target_track = "V2_Post_Card"
+            else:
+                target_track = "V3_Comment_Cards"
 
             # Copy card image into bundle
             bundled_card = assets_bundle_dir / f"scene_{i:02d}_{scene.card_image_path.name}"
             if not bundled_card.exists():
                 shutil.copy2(scene.card_image_path, bundled_card)
 
-            card_trange = cc.Timerange(0, scene_dur_us)
+            card_trange = cc.Timerange(timeline_curr_us, scene_dur_us)
             card_seg = cc.VideoSegment(str(bundled_card), card_trange)
             script.add_segment(card_seg, target_track)
 
@@ -98,9 +105,24 @@ class CapCutExporter:
                 if not bundled_audio.exists():
                     shutil.copy2(scene.audio_path, bundled_audio)
 
-                audio_trange = cc.Timerange(0, scene_dur_us)
+                audio_trange = cc.Timerange(timeline_curr_us, scene_dur_us)
                 audio_seg = cc.AudioSegment(str(bundled_audio), audio_trange, volume=1.0)
                 script.add_segment(audio_seg, "A1_Voiceovers")
+
+            # Add sound effect cues on A3
+            for cue in getattr(scene, "sfx_cues", []):
+                if cue.file_path and cue.file_path.exists():
+                    bundled_sfx = assets_bundle_dir / f"sfx_{cue.sfx_id}_{cue.file_path.name}"
+                    if not bundled_sfx.exists():
+                        shutil.copy2(cue.file_path, bundled_sfx)
+                    try:
+                        audio_mat = cc.AudioMaterial(str(bundled_sfx))
+                        sfx_dur_us = min(scene_dur_us, audio_mat.duration)
+                        sfx_trange = cc.Timerange(timeline_curr_us, sfx_dur_us)
+                        sfx_seg = cc.AudioSegment(audio_mat, sfx_trange, volume=cue.volume)
+                        script.add_segment(sfx_seg, "A3_Sound_Effects")
+                    except Exception as e:
+                        logger.warning(f"Could not add SFX segment to CapCut: {e}")
 
             timeline_curr_us += scene_dur_us
 

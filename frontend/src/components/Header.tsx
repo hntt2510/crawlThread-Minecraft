@@ -1,7 +1,7 @@
-import React from 'react';
 import { 
   DownloadCloud, 
   MessageSquare, 
+  Flame,
   Mic2, 
   Sliders, 
   Film, 
@@ -19,10 +19,11 @@ export const Header: React.FC<HeaderProps> = ({ currentStep, onSelectStep, proje
   const steps = [
     { num: 1, label: '1. Nhập Threads', icon: DownloadCloud },
     { num: 2, label: '2. Chọn Bình Luận', icon: MessageSquare },
-    { num: 3, label: '3. Giọng Đọc VN', icon: Mic2 },
-    { num: 4, label: '4. Video Minecraft', icon: Sliders },
-    { num: 5, label: '5. Xuất Video & CapCut', icon: Film },
-    { num: 6, label: '6. Xuất Bản', icon: Share2 },
+    { num: 3, label: '3. Tạo Hook AI', icon: Flame },
+    { num: 4, label: '4. Giọng Đọc & TTS', icon: Mic2 },
+    { num: 5, label: '5. Preview Timeline', icon: Sliders },
+    { num: 6, label: '6. Dựng Video', icon: Film },
+    { num: 7, label: '7. Xuất & Đăng', icon: Share2 },
   ];
 
   return (

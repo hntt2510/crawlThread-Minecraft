@@ -6,6 +6,7 @@ export interface Project {
   settings: Record<string, any>;
   created_at: string;
   updated_at: string;
+  updated_at_human?: string;
   post?: ThreadsPost;
   selections: CommentSelection[];
 }
@@ -35,6 +36,8 @@ export interface ThreadsPost {
   reply_count?: number;
   repost_count?: number;
   published_at?: string;
+  age_label?: string;
+  is_youth_trend?: boolean;
 }
 
 export interface ThreadsComment {
@@ -50,6 +53,8 @@ export interface ThreadsComment {
   reply_count?: number;
   nesting_depth: number;
   published_at?: string;
+  age_label?: string;
+  is_youth_trend?: boolean;
 }
 
 export interface CommentSelection {
@@ -108,6 +113,7 @@ export interface TrendingTopic {
   source_label: string;
   traffic_hint?: string;
   updated_at: string;
+  updated_at_human?: string;
 }
 
 export interface DiscoveredPost {
@@ -120,6 +126,8 @@ export interface DiscoveredPost {
   media_type: string;
   media_urls: string[];
   published_at?: string;
+  age_label?: string;
+  is_youth_trend?: boolean;
   like_count?: number;
   reply_count?: number;
   repost_count?: number;
@@ -143,6 +151,9 @@ export interface DiscoveryResult {
   };
   query: string;
   execution_time_ms: number;
+  suggested_topics?: string[];
+  matched_cluster?: string;
+  original_keyword?: string;
 }
 
 export interface DiscoverySearchRequest {
@@ -151,5 +162,110 @@ export interface DiscoverySearchRequest {
   search_type?: 'TOP' | 'RECENT' | 'BOTH';
   media_type?: string;
   time_window?: '24h' | '3d' | '7d' | 'all';
+  sort_by?: 'hot' | 'latest' | 'comments';
   limit?: number;
 }
+
+// AI Studio Types
+export interface CuratedComment {
+  comment_id: string;
+  author_username: string;
+  author_display_name: string;
+  display_text: string;
+  tts_text: string;
+  like_count?: number;
+  reply_count?: number;
+  parent_comment_id?: string;
+  nesting_depth: number;
+  overall_score: number;
+  humor_score: number;
+  emotion_score: number;
+  controversy_score: number;
+  story_score: number;
+  engagement_score: number;
+  is_thread_dialog: boolean;
+  selection_reason: string;
+  suggested_sfx?: string;
+  punchline_pause_sec: number;
+}
+
+export interface CurationResult {
+  curated_comments: CuratedComment[];
+  total_evaluated: number;
+  total_filtered_spam: number;
+  selection_mode: string;
+  summary_insight: string;
+}
+
+export interface HookOption {
+  id: string;
+  style: 'curiosity' | 'conflict' | 'question' | 'custom';
+  title_badge: string;
+  hook_text: string;
+  tts_text: string;
+  reason: string;
+  estimated_duration_sec: number;
+  audio_path?: string;
+}
+
+export interface TimelineScene {
+  id: string;
+  scene_index: number;
+  scene_type: 'hook' | 'post' | 'comment';
+  author_username: string;
+  author_display_name: string;
+  display_text: string;
+  tts_text: string;
+  start_time_sec: number;
+  duration_sec: number;
+  end_time_sec: number;
+  speech_duration_sec: number;
+  pause_buffer_sec: number;
+  card_image_path?: string;
+  audio_path?: string;
+  sfx_id?: string;
+  sfx_offset_sec: number;
+  sfx_volume: number;
+  zoom_effect: boolean;
+  zoom_factor: number;
+  transition_style: string;
+  is_punchline: boolean;
+}
+
+export interface TimelinePlan {
+  scenes: TimelineScene[];
+  total_duration_sec: number;
+  caption_segments: any[];
+  sfx_cues: any[];
+  has_hook: boolean;
+  video_pace: string;
+}
+
+export interface QualityIssue {
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
+  suggestion: string;
+  field_target?: string;
+  can_auto_fix: boolean;
+}
+
+export interface QualityCheckReport {
+  is_passed: boolean;
+  score: number;
+  errors: QualityIssue[];
+  warnings: QualityIssue[];
+  suggestions: string[];
+  video_duration_sec: number;
+}
+
+export interface SFXItem {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  file_path: string;
+  duration_ms: number;
+  default_volume: number;
+}
+

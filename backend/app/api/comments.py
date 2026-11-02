@@ -89,3 +89,43 @@ def restore_comment_text(project_id: str, comment_id: str, db: Session = Depends
         db.commit()
 
     return {"success": True, "content": original_comment.content}
+
+@router.post("/project/{project_id}/curate")
+def auto_curate_comments(
+    project_id: str,
+    target_count: int = 5,
+    mode: str = "balanced",
+    auto_apply: bool = False,
+    db: Session = Depends(get_db)
+):
+    from backend.app.services.ai_curation.comment_curator import comment_curator
+    post = db.query(ThreadsPost).filter(ThreadsPost.project_id == project_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail="Không tìm thấy bài viết gốc của dự án.")
+    comments = db.query(ThreadsComment).filter(ThreadsComment.post_id == post.id).all()
+    if not comments:
+        raise HTTPException(status_code=400, detail="Dự án chưa có bình luận nào để phân tích.")
+
+    curation_res = comment_curator.curate(comments, target_count=target_count, mode=mode)
+
+    if auto_apply and curation_res.curated_comments:
+        db.query(CommentSelection).filter(CommentSelection.project_id == project_id).delete()
+        db.flush()
+        for idx, c in enumerate(curation_res.curated_comments):
+            sel = CommentSelection(
+                project_id=project_id,
+                comment_id=c.comment_id,
+                sequence_order=idx,
+                display_text=c.display_text,
+                tts_text=c.tts_text,
+                voice_id="vi-VN-HoaiMyNeural",
+                voice_rate=1.0,
+                is_active=True
+            )
+            db.add(sel)
+        db.commit()
+
+    return {
+        "success": True,
+        "data": curation_res.model_dump()
+    }

@@ -31,8 +31,25 @@ export const Step2Comments: React.FC<Step2Props> = ({ project, onNext, onBack })
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [filterType, setFilterType] = useState<'all' | 'top_level' | 'replies'>('all');
+  const [curating, setCurating] = useState(false);
+  const [curationInsight, setCurationInsight] = useState('');
+  const [curationMode, setCurationMode] = useState<'balanced' | 'humor' | 'story' | 'controversy'>('balanced');
 
   const qualityReport: CrawlQualityReport | undefined = project.settings?.quality_report;
+
+  const handleAiCurate = async (targetCount: number = 5, mode: string = curationMode) => {
+    setCurating(true);
+    try {
+      const res = await api.curateComments(project.id, targetCount, mode, true);
+      setCurationInsight(res.summary_insight || '');
+      const sel = await api.getProjectSelections(project.id);
+      setSelections(sel);
+    } catch (e) {
+      console.error('Error during curation:', e);
+    } finally {
+      setCurating(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -215,56 +232,90 @@ export const Step2Comments: React.FC<Step2Props> = ({ project, onNext, onBack })
           </div>
         </div>
       )}
+      {/* AI Smart Curation & Quick Action Toolbar */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-xl space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* AI Curation Button & Modes */}
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => handleAiCurate(5, curationMode)}
+              disabled={curating}
+              className="flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white shadow-md shadow-violet-600/20 transition"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${curating ? 'animate-spin' : ''}`} />
+              <span>{curating ? 'AI đang phân tích...' : '🤖 AI Tuyển Chọn Thông Minh'}</span>
+            </button>
 
-      {/* Quick Action Toolbar */}
-      <div className="bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex flex-wrap items-center justify-between gap-4">
-        {/* Quick select buttons */}
-        <div className="flex items-center space-x-2">
-          <span className="text-xs text-slate-400 font-medium flex items-center space-x-1">
-            <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-            <span>Chọn nhanh:</span>
-          </span>
-          <button
-            onClick={() => handleSelectTopN(3)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition"
-          >
-            Top 3 Like
-          </button>
-          <button
-            onClick={() => handleSelectTopN(5)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition"
-          >
-            Top 5 Like
-          </button>
-          <button
-            onClick={() => handleSelectTopN(10)}
-            className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition"
-          >
-            Top 10 Like
-          </button>
+            {/* Mode selection */}
+            <select
+              value={curationMode}
+              onChange={(e) => setCurationMode(e.target.value as any)}
+              className="bg-slate-800 border border-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg focus:outline-none"
+            >
+              <option value="balanced">🌟 Cân bằng (Viral tổng hợp)</option>
+              <option value="humor">😂 Hài hước & Bẻ lái</option>
+              <option value="story">📖 Kể chuyện & Trải nghiệm</option>
+              <option value="controversy">⚡ Tranh luận & Đa chiều</option>
+            </select>
+          </div>
+
+          {/* Quick select buttons & Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-400 font-medium">Chọn nhanh:</span>
+              <button
+                onClick={() => handleAiCurate(3, curationMode)}
+                disabled={curating}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 transition"
+              >
+                Top 3 AI
+              </button>
+              <button
+                onClick={() => handleAiCurate(5, curationMode)}
+                disabled={curating}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 transition"
+              >
+                Top 5 AI
+              </button>
+              <button
+                onClick={() => handleAiCurate(10, curationMode)}
+                disabled={curating}
+                className="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-2.5 py-1.5 rounded-lg border border-slate-700 transition"
+              >
+                Top 10 AI
+              </button>
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+              <button
+                onClick={() => setFilterType('all')}
+                className={`px-3 py-1 rounded-md transition ${filterType === 'all' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Tất cả ({allComments.length})
+              </button>
+              <button
+                onClick={() => setFilterType('top_level')}
+                className={`px-3 py-1 rounded-md transition ${filterType === 'top_level' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Bình luận gốc
+              </button>
+              <button
+                onClick={() => setFilterType('replies')}
+                className={`px-3 py-1 rounded-md transition ${filterType === 'replies' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                Phản hồi con
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Filter Tabs */}
-        <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1 rounded-md transition ${filterType === 'all' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            Tất cả ({allComments.length})
-          </button>
-          <button
-            onClick={() => setFilterType('top_level')}
-            className={`px-3 py-1 rounded-md transition ${filterType === 'top_level' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            Bình luận gốc
-          </button>
-          <button
-            onClick={() => setFilterType('replies')}
-            className={`px-3 py-1 rounded-md transition ${filterType === 'replies' ? 'bg-violet-600 text-white font-medium' : 'text-slate-400 hover:text-slate-200'}`}
-          >
-            Phản hồi con
-          </button>
-        </div>
+        {curationInsight && (
+          <div className="bg-violet-950/30 border border-violet-800/40 rounded-lg px-3 py-2 text-xs text-violet-300 flex items-center space-x-2">
+            <Sparkles className="w-4 h-4 text-violet-400 shrink-0" />
+            <span>{curationInsight}</span>
+          </div>
+        )}
       </div>
 
       {/* Main Grid: Selected Pipeline vs Raw Comments Pool */}
@@ -281,7 +332,7 @@ export const Step2Comments: React.FC<Step2Props> = ({ project, onNext, onBack })
               Chưa có bình luận nào được chọn. Hãy tick chọn các bình luận bên phải hoặc bấm các nút chọn nhanh ở trên.
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5 max-h-[660px] overflow-y-auto pr-2 custom-scrollbar">
               {selections.map((sel, idx) => (
                 <div key={sel.comment_id} className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3 relative group">
                   {/* Item Header */}
@@ -370,7 +421,7 @@ export const Step2Comments: React.FC<Step2Props> = ({ project, onNext, onBack })
             Kho Bình Luận Phân Cấp ({filteredComments.length})
           </h3>
 
-          <div className="max-h-[640px] overflow-y-auto space-y-2.5 pr-1 scrollbar-thin">
+          <div className="max-h-[660px] overflow-y-auto space-y-2.5 pr-2 custom-scrollbar">
             {filteredComments.map((comment) => {
               const isSelected = selections.some((s) => s.comment_id === comment.id);
               const isNested = comment.nesting_depth > 0 || !!comment.parent_comment_id;
